@@ -24,4 +24,4 @@ fi
 echo "Starting dashboard -> http://localhost:8000"
 
 # Start the web server
-exec venv/bin/python -m src.kalshi.dashboard.web_server
+exec venv/Scripts/python -m src.kalshi.dashboard.web_server
