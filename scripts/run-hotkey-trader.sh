@@ -30,4 +30,4 @@ fi
 echo "Starting hotkey trader..."
 
 # Run the hotkey trader
-exec venv/bin/python -m src.kalshi.bots.hotkey_trader
+exec venv/Scripts/python -m src.kalshi.bots.hotkey_trader
