@@ -24,4 +24,4 @@ fi
 echo "Starting hotkey generator..."
 
 # Run the generator
-exec venv/bin/python -m src.kalshi.tools.generate_hotkeys "$@"
+exec venv/Scripts/python -m src.kalshi.tools.generate_hotkeys "$@"
