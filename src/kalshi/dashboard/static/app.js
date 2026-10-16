@@ -764,7 +764,7 @@ class KalshiTradingClient {
       return;
     }
     if (!price || price < 1 || price > 99) {
-      button.textContent = "Enter price (1-99Â¢)";
+      button.textContent = "Enter price (1-99¢)";
       button.style.opacity = "0.4";
       button.style.pointerEvents = "none";
       button.style.cursor = "not-allowed";
@@ -772,7 +772,7 @@ class KalshiTradingClient {
     }
     const actionText = action.charAt(0).toUpperCase() + action.slice(1);
     const sideText = side.toUpperCase();
-    button.textContent = `${actionText} ${count} ${sideText} @ ${price}Â¢`;
+    button.textContent = `${actionText} ${count} ${sideText} @ ${price}¢`;
     button.style.opacity = "1";
     button.style.pointerEvents = "auto";
     button.style.cursor = "pointer";
@@ -889,7 +889,7 @@ class KalshiTradingClient {
       </div>
       <div class="list-item-details" style="font-size: 15px; font-weight: 600; margin-top: 4px;">
         <span style="color: var(--text-primary);">
-          ${contracts} <span style="color: ${sideColor}; font-weight: 700;">${side}</span> @ ${price}Â¢
+          ${contracts} <span style="color: ${sideColor}; font-weight: 700;">${side}</span> @ ${price}¢
           <span style="color: var(--text-muted); font-weight: 500; margin-left: 8px;">
             Current Value: ${this.formatCurrency(value)}
           </span>
@@ -941,7 +941,7 @@ class KalshiTradingClient {
 
     const price = order.side === "yes" ? order.yes_price : order.no_price;
     const priceDisplay =
-      price !== null && price !== undefined ? `${price}Â¢` : "N/A";
+      price !== null && price !== undefined ? `${price}¢` : "N/A";
     const actionText = order.action === "buy" ? "Buying" : "Selling";
     const actionColor = order.action === "buy" ? "#10b981" : "#ef4444";
     const sideColor = order.side === "yes" ? "#408fff" : "#d24dff";
@@ -1037,7 +1037,7 @@ class KalshiTradingClient {
           <span style="color: ${actionColor}; font-weight: 600;">${actionText}</span>
           ${fill.count}
           <span style="color: ${sideColor}; font-weight: 600;">${fill.side.toUpperCase()}</span>
-          @ ${fill.price}Â¢
+          @ ${fill.price}¢
         </span>
         <span>${timeStr}</span>
         <span>${fill.is_taker ? "Taker" : "Maker"}</span>
@@ -1092,8 +1092,8 @@ class KalshiTradingClient {
       <div class="orderbook-display">
         <div class="orderbook-title">No market selected</div>
         <div class="orderbook-prices">
-          <div class="price-yes">YES â€”</div>
-          <div class="price-no">NO â€”</div>
+          <div class="price-yes">YES —</div>
+          <div class="price-no">NO —</div>
         </div>
       </div>
     `;
@@ -1107,11 +1107,11 @@ class KalshiTradingClient {
   buildOrderbookHTML(data) {
     const yesPriceDisplay =
       data.yes_price !== null && data.yes_price !== undefined
-        ? `${data.yes_price}Â¢`
+        ? `${data.yes_price}¢`
         : "N/A";
     const noPriceDisplay =
       data.no_price !== null && data.no_price !== undefined
-        ? `${data.no_price}Â¢`
+        ? `${data.no_price}¢`
         : "N/A";
     const title = this.truncate(data.title, CONFIG.MAX_ORDERBOOK_TITLE_LENGTH);
 
