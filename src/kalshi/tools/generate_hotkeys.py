@@ -19,7 +19,6 @@ from cryptography.hazmat.backends import default_backend
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from src.kalshi.clients.kalshi_client import KalshiClient
 
 load_dotenv()
 

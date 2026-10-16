@@ -79,3 +79,5 @@ planned_features/
 # .pytest_cache/
 # .coverage
 # htmlcov/
+
+.venv/

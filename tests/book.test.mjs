@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {emptyBook,applyEvent,ladder,preview} from '../replay/book.js';import {events} from '../replay/fixtures.js';
+const snapshot=()=>applyEvent(emptyBook(),events[0]);
+test('opposite bids produce complementary asks, sorted cheapest first',()=>{const d=ladder(snapshot());assert.equal(d.asks[0].price,.45);assert.equal(d.bids[0].price,.42);});
+test('preview walks depth and reports partial fill at limit',()=>{const p=preview(snapshot(),{count:50,limit:.46});assert.equal(p.filled,30);assert.equal(p.unfilled,20);assert.equal(p.cost,13.5);});
+test('settlement includes cost for either outcome',()=>{const p=preview(snapshot(),{count:40});assert.equal(p.cost,18.2);assert.equal(p.netIfWins,21.8);assert.equal(p.netIfLoses,-18.2);});
+test('sequence gap freezes until a new snapshot',()=>{let b=snapshot();b=applyEvent(b,events[3]);assert.equal(b.synced,false);assert.throws(()=>preview(b));b=applyEvent(b,events[4]);assert.equal(b.synced,false);b=applyEvent(b,events[5]);assert.equal(b.synced,true);});
+test('duplicate deltas never double quantity',()=>{let b=snapshot();for(const e of events.slice(1,9))b=applyEvent(b,e);assert.equal(b.yes.get(4300),4000);});
+test('depleted levels removed without mutating prior state',()=>{const a=applyEvent(snapshot(),events[5]),b=applyEvent(a,events[6]);assert.equal(b.no.has(5400),false);assert.equal(a.no.get(5400),6000);});
+test('stale and invalid requests block previews',()=>{assert.throws(()=>preview(snapshot(),{now:6}));assert.throws(()=>preview(snapshot(),{count:0}));assert.throws(()=>preview(snapshot(),{count:.001}));});
+test('negative level forces resync',()=>{const b=applyEvent(snapshot(),{type:'delta',seq:101,time:1,side:'yes',price:.42,change:-51});assert.equal(b.synced,false);});
+test('four-decimal prices and fractional sizes survive',()=>{const b=applyEvent(snapshot(),{type:'delta',seq:101,time:1,side:'no',price:.5525,change:2.25});assert.equal(ladder(b).asks[0].price,.4475);assert.equal(preview(b,{count:2.25}).cost,1.006875);});
+test('crossed and malformed snapshots cannot be used',()=>{const b=applyEvent(emptyBook(),{type:'snapshot',seq:1,time:0,yes:[[.7,2]],no:[[.6,2]]});assert.throws(()=>preview(b));assert.throws(()=>applyEvent(emptyBook(),{...events[0],yes:[[.4,2],[.4,3]]}));});

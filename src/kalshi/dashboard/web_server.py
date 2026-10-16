@@ -15,10 +15,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
-import uvloop
+try:
+    import uvloop
+except ImportError:
+    uvloop = None
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -39,7 +43,10 @@ from src.kalshi.tools.generate_hotkeys import (
     save_hotkeys_config,
 )
 
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+if uvloop is not None:
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
+from src.kalshi.dashboard.policy import LOCAL_ORIGINS, action_allowed, origin_allowed, trading_enabled
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -118,7 +125,7 @@ class ConnectionManager:
     async def broadcast_json(self, data: Dict, compress: bool = True) -> None:
         """Broadcast JSON to all clients"""
         disconnected = []
-        for connection in self.active_connections:
+        for connection in tuple(self.active_connections):
             try:
                 await self.send_json(connection, data, compress=compress)
             except Exception:
@@ -466,11 +473,12 @@ app = FastAPI(lifespan=lifespan, title="Kalshi Trading Dashboard")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=list(LOCAL_ORIGINS),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "[::1]"])
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 static_dir = Path(__file__).parent / "static"
@@ -502,6 +510,9 @@ async def health_check():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time communication"""
+    if not origin_allowed(websocket.headers.get("origin")):
+        await websocket.close(code=1008, reason="Local dashboard origin required")
+        return
     await connection_manager.connect(websocket)
 
     try:
@@ -510,6 +521,7 @@ async def websocket_endpoint(websocket: WebSocket):
             {
                 "type": "connection",
                 "status": "connected",
+                "execution_enabled": trading_enabled(),
                 "message": "Connected to Kalshi Trading Dashboard (Compression Enabled)",
             },
             compress=False,
@@ -536,7 +548,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 else:
                     continue
 
+                if not isinstance(data, dict):
+                    raise ValueError("WebSocket message must be a JSON object")
                 action = data.get("action")
+                if not action_allowed(action):
+                    await connection_manager.send_json(websocket, {"type": "error", "message": "Read-only mode: execution is disabled. Set DASHBOARD_ENABLE_EXECUTION=true only for an intentionally configured local session."}, compress=False)
+                    continue
 
                 if action == "get_balance":
                     result = await kalshi_client.get_balance()
@@ -587,6 +604,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     limit = data.get("limit", DEFAULT_FILLS_LIMIT)
                     fills_result = await kalshi_client.get_fills(limit=limit)
                     fills = fills_result.get("fills", [])
+                    fills_data = []
 
                     if fills:
                         tickers = list(set(fill["ticker"] for fill in fills))
@@ -1011,9 +1029,9 @@ if __name__ == "__main__":
 
     uvicorn.run(
         app,
-        host="0.0.0.0",
+        host="127.0.0.1",
         port=8000,
         log_level="warning",
-        loop="uvloop",
+        loop="uvloop" if uvloop is not None else "asyncio",
         access_log=False,
     )
